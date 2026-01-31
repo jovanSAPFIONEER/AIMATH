@@ -1,117 +1,270 @@
-# AI Math Verification & Discovery Tool
+# 🧮 AIMATH - AI Math Verification & Discovery Tool
 
-A rigorous mathematical verification system that helps amateurs to professionals solve, verify, and discover mathematical concepts—with built-in anti-hallucination mechanisms and genuine explanation quality enforcement.
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Core Philosophy
+**A rigorous mathematical verification system that helps everyone—from amateurs to professionals—solve, verify, and discover mathematical concepts with built-in anti-hallucination mechanisms.**
 
-**"Never trust, always verify"**
+> "Never trust, always verify"
+
+---
+
+## 🚀 Quick Install
+
+```bash
+pip install aimath
+```
+
+Or install from source:
+```bash
+git clone https://github.com/jovanSAPFIONEER/AIMATH.git
+cd AIMATH
+pip install -e .
+```
+
+---
+
+## 🎯 Quick Start
+
+### Command Line (Easiest!)
+
+```bash
+# Solve an equation
+aimath solve "x^2 - 5x + 6 = 0"
+
+# Get an explanation
+aimath explain "quadratic formula"
+
+# Interactive mode
+aimath interactive
+
+# See all examples
+aimath examples
+```
+
+### Python API
+
+```python
+from aimath import MathEngine, ProofAssistant
+
+# Solve equations with verification
+engine = MathEngine()
+result = engine.solve("x^2 - 5x + 6 = 0")
+print(result.solutions)      # [2, 3]
+print(result.confidence)     # 100% (verified)
+
+# Formal proof construction
+prover = ProofAssistant()
+theorem = prover.state_theorem(
+    name="commutativity",
+    statement="For all a, b: a + b = b + a"
+)
+```
+
+---
+
+## ✨ Key Features
+
+### 🔬 Multi-Path Verification
+Every problem is solved by 2+ independent methods with consensus required before returning results.
 
 ```
-HIGHEST TRUST:  Formal theorem provers (Lean, Z3, Coq)
-                     ↓
-HIGH TRUST:     Symbolic computation with verification (SymPy + checks)
-                     ↓
-MEDIUM TRUST:   Numerical computation (floating point limits)
-                     ↓
+HIGHEST TRUST:  Formal theorem provers (Z3, Lean)
+     ↓
+HIGH TRUST:     Symbolic computation (SymPy + verification)
+     ↓
+MEDIUM TRUST:   Numerical computation (with error bounds)
+     ↓
 LOWEST TRUST:   LLM output (ALWAYS requires verification)
 ```
 
-## Features
+### 🛡️ Anti-Hallucination Protection
+- **Substitution tests**: Plug answers back into original equations
+- **Counterexample search**: Actively try to disprove claims
+- **Formal proof verification**: Using Z3 theorem prover
+- **Domain constraint checking**: Ensure solutions are valid
 
-### 🔬 Multi-Path Verification
-- Every problem solved by 2+ independent methods
-- Consensus required before returning results
-- Confidence scores (100% proven → <70% flagged for review)
+### 📚 Quality-Enforced Explanations
+No hand-waving allowed! Every explanation must:
+- Define all terms before use
+- Provide concrete examples first
+- Show step-by-step reasoning with **WHY** for each step
+- Include edge cases and limitations
 
-### 🛡️ Anti-Hallucination Core
-- Substitution tests (plug answers back in)
-- Counterexample search (actively try to disprove)
-- Formal proof verification via Z3/Lean
-- Domain constraint checking
+**Banned patterns** (auto-expanded):
+- ❌ "Obviously..." → Must prove it's obvious
+- ❌ "Clearly..." → Must show clearly  
+- ❌ "It follows that..." → Must show the inference chain
+- ❌ "The reader can verify..." → We verify it ourselves
 
-### 📚 Genuine Explanation Engine
-- **No hand-waving**: Auto-detects and expands "obviously", "clearly", "simply"
-- **No skipped steps**: Every logical gap explicitly bridged
-- **Concrete first**: Examples before abstraction
-- **Why, not just how**: Motivation accompanies every procedure
-- **Failure cases required**: Shows when methods break down
+### 📜 Formal Proof Assistant
+Construct rigorous proofs with:
+- Propositional & first-order logic
+- Peano arithmetic axioms
+- Multiple proof tactics (direct, contradiction, induction)
+- Automated proof verification
 
-### 📊 Quality Gates
-- CLEAR rubric scoring (Completeness, Logic, Explicit terms, Accessibility, Reasoning)
-- Explanations must score ≥20/25 to pass
-- Teach-back simulation test
-- Superficiality detection
+---
 
-## Installation
+## 📖 Usage Examples
 
-```bash
-# Create virtual environment
-python -m venv venv
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Linux/Mac
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install Z3 theorem prover
-pip install z3-solver
-```
-
-## Quick Start
+### Solving Equations
 
 ```python
-from src.core.engine import MathEngine
+from aimath import MathEngine
 
 engine = MathEngine()
 
-# Solve with verification
-result = engine.solve("x^2 - 5x + 6 = 0")
-print(result.solution)        # [2, 3]
-print(result.confidence)      # 100% (verified)
-print(result.explanation)     # Step-by-step with WHY
+# Polynomial equations
+result = engine.solve("x^3 - 6x^2 + 11x - 6 = 0")
+# Solutions: [1, 2, 3]
 
-# Verify a claim
-verification = engine.verify_claim("√2 is irrational")
-print(verification.is_valid)  # True
-print(verification.proof)     # Formal proof
+# Trigonometric equations
+result = engine.solve("sin(x) = 0.5")
+# Solutions: [π/6, 5π/6, ...]
+
+# Systems of equations
+result = engine.solve(["x + y = 10", "x - y = 4"])
+# Solutions: {x: 7, y: 3}
 ```
 
-## Project Structure
+### Verifying Claims
+
+```python
+from aimath import MathEngine
+
+engine = MathEngine()
+
+# Verify mathematical claims
+result = engine.verify_claim("√2 is irrational")
+print(result.is_valid)  # True
+print(result.proof)     # Proof by contradiction...
+
+result = engine.verify_claim("e^(iπ) + 1 = 0")
+print(result.is_valid)  # True (Euler's identity)
+```
+
+### Formal Proofs
+
+```python
+from aimath import ProofAssistant, Proposition
+
+prover = ProofAssistant()
+
+# State a theorem
+theorem = prover.state_theorem(
+    name="modus_ponens_example",
+    statement="(P → Q) ∧ P → Q"
+)
+
+# The proof assistant guides you through construction
+# with verification at each step
+```
+
+### Getting Explanations
+
+```bash
+# From command line
+aimath explain "derivative" --level beginner
+aimath explain "pythagorean theorem"
+aimath explain "quadratic formula" --level advanced
+```
+
+---
+
+## 🏗️ Project Structure
 
 ```
-AI MATH/
-├── src/
-│   ├── core/           # Main engine and types
-│   ├── parsers/        # LaTeX, natural language parsing
-│   ├── solvers/        # Symbolic, numerical, LLM solvers
-│   ├── verification/   # Anti-hallucination verification
-│   └── explanation/    # Quality-enforced explanations
-├── tests/              # Test suites
-├── examples/           # Usage examples
-└── config/             # Configuration files
+AIMATH/
+├── aimath/                 # Main package (pip installable)
+│   ├── core/              # Math engine and types
+│   ├── proof_assistant/   # Formal proof system
+│   ├── solvers/           # Symbolic & numerical solvers
+│   ├── verification/      # Anti-hallucination checks
+│   ├── explanation/       # Quality-enforced explanations
+│   └── cli.py            # Command-line interface
+├── tests/                 # Test suites
+├── examples/              # Usage examples
+└── config/               # Configuration files
 ```
 
-## Explanation Quality Standards
+---
 
-Every explanation must:
+## 🧪 Testing
 
-1. **Define all terms before use**
-2. **Provide concrete example first**
-3. **Show step-by-step with WHY for each step**
-4. **Include edge cases and limitations**
-5. **Pass adversarial "Skeptical Student" test**
+```bash
+# Run all tests
+pytest
 
-### Banned Patterns (Auto-Expanded)
-- "Obviously..." → Must prove it's obvious
-- "Clearly..." → Must show clearly
-- "It follows that..." → Must show the inference chain
-- "By definition..." → Must state the definition
-- "The reader can verify..." → Must verify it ourselves
+# Run specific test suites
+python tests/test_theses.py              # 10 mathematical theses
+python tests/test_proof_assistant.py     # Formal proof system
+python tests/test_discover_orion_formal_proofs.py  # GWT theory verification
+```
 
-## License
+---
 
-MIT License - See LICENSE file
+## 📊 Verified Against
 
-## Contributing
+AIMATH has been tested against:
+- **10 fundamental mathematical theses** (quadratic formula, Pythagorean theorem, etc.)
+- **DISCOVER/Orion consciousness research** (Global Workspace Theory)
+- **Statistical formulas** (Wilson CI, Newcombe CI, Cohen's h, etc.)
+
+---
+
+## 🤝 Who Is This For?
+
+| User | Use Case |
+|------|----------|
+| 🎓 **Students** | Homework help with verified solutions and real explanations |
+| 👨‍🏫 **Teachers** | Generate quality problem sets and explanations |
+| 🔬 **Researchers** | Verify mathematical claims in papers |
+| 💻 **Developers** | Integrate verified math into applications |
+| 🤖 **AI Systems** | Ground LLM outputs with rigorous verification |
+
+---
+
+## 🔧 Requirements
+
+- Python 3.9+
+- SymPy (symbolic computation)
+- NumPy, SciPy (numerical computation)
+- Z3-solver (formal verification)
+
+Install all dependencies:
+```bash
+pip install aimath[all]
+```
+
+---
+
+## 📜 License
+
+MIT License - Use freely for any purpose.
+
+---
+
+## 🙏 Contributing
 
 Contributions welcome! Please ensure all code passes verification tests.
+
+```bash
+# Before submitting
+pytest
+python -m aimath.cli solve "x^2 - 4 = 0"  # Quick sanity check
+```
+
+---
+
+## 📬 Links
+
+- **GitHub**: https://github.com/jovanSAPFIONEER/AIMATH
+- **Issues**: https://github.com/jovanSAPFIONEER/AIMATH/issues
+
+---
+
+<p align="center">
+  <b>Made with ❤️ for the math community</b><br>
+  <i>"Because everyone deserves verified mathematics"</i>
+</p>
