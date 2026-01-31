@@ -1,0 +1,22 @@
+{
+    "include": ["src", "tests", "examples"],
+    "exclude": ["**/__pycache__"],
+    "reportUnknownMemberType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownArgumentType": "none",
+    "reportUnknownParameterType": "none",
+    "reportMissingParameterType": "none",
+    "reportOperatorIssue": "none",
+    "reportUnusedImport": "none",
+    "reportUnusedVariable": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalOperand": "none",
+    "reportAttributeAccessIssue": "none",
+    "reportIndexIssue": "none",
+    "reportCallIssue": "none",
+    "reportArgumentType": "none",
+    "reportReturnType": "none",
+    "reportMissingImports": "none",
+    "pythonVersion": "3.11",
+    "typeCheckingMode": "off"
+}

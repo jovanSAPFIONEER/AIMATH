@@ -1,0 +1,115 @@
+# AI Math Verification & Discovery Tool - Configuration
+
+# =============================================================================
+# VERIFICATION SETTINGS
+# =============================================================================
+verification:
+  # Minimum confidence to return without warning
+  min_confidence: 0.7
+  
+  # Require this many independent methods to agree
+  min_consensus_paths: 2
+  
+  # Maximum time for verification attempts (seconds)
+  timeout: 30
+  
+  # Enable formal theorem prover (Z3)
+  use_formal_prover: true
+  
+  # Enable counterexample search
+  search_counterexamples: true
+  
+  # Number of random test cases for numerical verification
+  numerical_test_count: 100
+
+# =============================================================================
+# EXPLANATION SETTINGS
+# =============================================================================
+explanation:
+  # CLEAR rubric minimum scores
+  quality_gate:
+    min_total_score: 20        # Out of 25
+    min_category_score: 3      # Out of 5 per category
+  
+  # Difficulty levels
+  levels:
+    - amateur      # High school level
+    - intermediate # Undergraduate level
+    - advanced     # Graduate level
+    - expert       # Research level
+  
+  # Default difficulty
+  default_level: intermediate
+  
+  # Always require concrete example before abstraction
+  require_concrete_first: true
+  
+  # Always require failure cases
+  require_failure_cases: true
+  
+  # Maximum jargon density (technical_terms / total_words)
+  max_jargon_density: 0.25
+
+# =============================================================================
+# ANTI-PATTERN SETTINGS
+# =============================================================================
+anti_patterns:
+  # Level 1: Require immediate expansion
+  expansion_triggers:
+    - "obviously"
+    - "clearly"
+    - "trivially"
+    - "simply"
+    - "it is easy to see"
+    - "it follows directly"
+    - "the reader can verify"
+    - "left as exercise"
+    - "straightforward calculation"
+    - "straightforward"
+  
+  # Level 2: Require definition/elaboration
+  definition_triggers:
+    - "by definition"
+    - "recall that"
+    - "using standard techniques"
+    - "by a similar argument"
+    - "similarly"
+    - "analogously"
+  
+  # Level 3: Require substantiation
+  substantiation_triggers:
+    - "it is well-known that"
+    - "it can be shown that"
+    - "one can prove that"
+    - "it turns out that"
+    - "it is known that"
+
+# =============================================================================
+# SOLVER SETTINGS
+# =============================================================================
+solvers:
+  # Enable symbolic solver (SymPy)
+  symbolic:
+    enabled: true
+    timeout: 10
+  
+  # Enable numerical solver (NumPy/SciPy)
+  numerical:
+    enabled: true
+    tolerance: 1e-10
+    max_iterations: 1000
+  
+  # Enable LLM solver (requires API key)
+  llm:
+    enabled: false  # Disabled by default - requires verification
+    model: "gpt-4"
+    temperature: 0.1
+    require_verification: true  # NEVER deliver without verification
+
+# =============================================================================
+# LOGGING
+# =============================================================================
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/aimath.log

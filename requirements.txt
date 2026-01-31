@@ -1,0 +1,62 @@
+# AI Math Verification & Discovery Tool - Dependencies
+
+# =============================================================================
+# CORE SYMBOLIC MATHEMATICS
+# =============================================================================
+sympy>=1.12                    # Symbolic computation engine
+numpy>=1.24                    # Numerical arrays
+scipy>=1.11                    # Scientific computing
+
+# =============================================================================
+# PARSING
+# =============================================================================
+latex2sympy2>=1.9.0            # LaTeX to SymPy conversion
+pylatexenc>=2.10               # LaTeX encoding utilities
+lark>=1.1.7                    # Grammar parser for custom syntax
+antlr4-python3-runtime>=4.13   # ANTLR parser runtime
+
+# =============================================================================
+# THEOREM PROVING & FORMAL VERIFICATION
+# =============================================================================
+z3-solver>=4.12.0              # Z3 SMT solver
+
+# =============================================================================
+# NATURAL LANGUAGE PROCESSING
+# =============================================================================
+spacy>=3.7                     # NLP pipeline
+transformers>=4.35             # Transformer models
+
+# =============================================================================
+# AI/LLM INTEGRATION (Behind verification wall)
+# =============================================================================
+langchain>=0.1.0               # LLM orchestration
+langchain-community>=0.0.10    # Community integrations
+openai>=1.0                    # OpenAI API client
+
+# =============================================================================
+# API & WEB
+# =============================================================================
+fastapi>=0.104                 # API framework
+uvicorn>=0.24                  # ASGI server
+pydantic>=2.5                  # Data validation
+
+# =============================================================================
+# TESTING
+# =============================================================================
+pytest>=7.4                    # Testing framework
+pytest-cov>=4.1                # Coverage reporting
+hypothesis>=6.90               # Property-based testing
+
+# =============================================================================
+# UTILITIES
+# =============================================================================
+pyyaml>=6.0                    # YAML configuration
+rich>=13.7                     # Beautiful CLI output
+typer>=0.9                     # CLI framework
+python-dotenv>=1.0             # Environment variables
+
+# =============================================================================
+# VISUALIZATION
+# =============================================================================
+matplotlib>=3.8                # Plotting
+plotly>=5.18                   # Interactive plots
