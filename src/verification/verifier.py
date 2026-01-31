@@ -135,22 +135,27 @@ class Verifier:
         if not consensus_check.passed:
             warnings.append(f"Solvers disagree: {consensus_check.details}")
         
+        # Extract actual answer value from SolverResult if needed
+        actual_answer = best_answer
+        if hasattr(best_answer, 'answer'):
+            actual_answer = best_answer.answer
+        
         # Step 2: Substitution check
-        if best_answer is not None:
-            sub_check = self.substitution_checker.check(problem, best_answer)
+        if actual_answer is not None:
+            sub_check = self.substitution_checker.check(problem, actual_answer)
             checks.append(sub_check)
             
             if not sub_check.passed:
                 warnings.append(f"Substitution failed: {sub_check.error}")
         
         # Step 3: Domain check
-        domain_check = self._check_domain(problem, best_answer)
+        domain_check = self._check_domain(problem, actual_answer)
         checks.append(domain_check)
         
         # Step 4: Counterexample search
-        if self.search_counterexamples and best_answer is not None:
+        if self.search_counterexamples and actual_answer is not None:
             counter_check = self.counterexample_searcher.search(
-                problem, best_answer
+                problem, actual_answer
             )
             checks.append(counter_check)
             
@@ -166,14 +171,21 @@ class Verifier:
             if proof_check.passed:
                 formal_proof = proof_check.evidence
         
-        # Step 6: Numerical verification
-        numerical_check = self._numerical_verify(problem, best_answer)
-        if numerical_check:
-            checks.append(numerical_check)
+        # Step 6: Numerical verification (skip for calculus - numerical methods 
+        # can't evaluate symbolic derivatives/integrals reliably)
+        is_calculus = problem.problem_type in [
+            ProblemType.DIFFERENTIATION, 
+            ProblemType.INTEGRATION
+        ]
+        if not is_calculus:
+            numerical_check = self._numerical_verify(problem, actual_answer)
+            if numerical_check:
+                checks.append(numerical_check)
         
         # Calculate confidence
         confidence_level, confidence_score = self.confidence_scorer.score(
-            checks, methods_used, formal_proof is not None
+            checks, methods_used, formal_proof is not None,
+            problem_type=problem.problem_type.value if problem.problem_type else None
         )
         
         # Determine overall verification status

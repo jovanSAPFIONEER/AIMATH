@@ -243,7 +243,11 @@ class ExplanationEngine:
             "**Let's start with a concrete example:**\n",
         ]
         
-        if problem.parsed_expression and answer:
+        # Check if we have a parsed expression (can't use boolean check on SymPy Eq)
+        has_expression = problem.parsed_expression is not None
+        has_answer = answer is not None
+        
+        if has_expression and has_answer:
             from sympy import Symbol, N
             
             # Try to give a specific numerical example
@@ -334,9 +338,11 @@ class ExplanationEngine:
         steps = []
         
         # Step 1: State the problem
+        # Use parsed_expression if available (avoiding boolean check on SymPy objects)
+        expression_to_show = problem.parsed_expression if problem.parsed_expression is not None else problem.raw_input
         steps.append(SolutionStep(
             action="Understand the problem",
-            expression=problem.parsed_expression or problem.raw_input,
+            expression=expression_to_show,
             justification=(
                 "Before solving, we must clearly understand what we're asked. "
                 f"This is a {problem.problem_type.value} problem."

@@ -62,15 +62,28 @@ class SubstitutionChecker:
                 error="Answer is None",
             )
         
+        # Extract actual answer from SolverResult if needed
+        actual_answer = answer
+        if hasattr(answer, 'answer'):
+            actual_answer = answer.answer
+        
+        if actual_answer is None:
+            return VerificationCheck(
+                check_type='substitution',
+                passed=False,
+                details="No answer to verify",
+                error="Answer is None",
+            )
+        
         try:
             if problem.problem_type == ProblemType.EQUATION:
-                return self._check_equation(problem, answer)
+                return self._check_equation(problem, actual_answer)
             elif problem.problem_type == ProblemType.DIFFERENTIATION:
-                return self._check_derivative(problem, answer)
+                return self._check_derivative(problem, actual_answer)
             elif problem.problem_type == ProblemType.INTEGRATION:
-                return self._check_integral(problem, answer)
+                return self._check_integral(problem, actual_answer)
             else:
-                return self._check_general(problem, answer)
+                return self._check_general(problem, actual_answer)
                 
         except Exception as e:
             logger.warning(f"Substitution check error: {e}")

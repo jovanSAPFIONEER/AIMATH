@@ -144,7 +144,7 @@ class ExpansionEngine:
             expansion.append("")
             
             # If we have a specific value, show substitution
-            if problem and problem.parsed_expression:
+            if problem and problem.parsed_expression is not None:
                 expansion.append("Starting with the original expression:")
                 expansion.append(f"  {problem.parsed_expression}")
                 expansion.append("")
@@ -189,7 +189,7 @@ class ExpansionEngine:
             "",
         ]
         
-        if problem and problem.parsed_expression:
+        if problem and problem.parsed_expression is not None:
             expansion.append(f"**Starting point:** {problem.parsed_expression}")
             expansion.append("")
             
@@ -324,7 +324,7 @@ class ExpansionEngine:
             "",
         ]
         
-        if problem and problem.parsed_expression:
+        if problem and problem.parsed_expression is not None:
             expansion.append(f"Starting expression: {problem.parsed_expression}")
             expansion.append("")
             expansion.append("Step 1: [First operation]")

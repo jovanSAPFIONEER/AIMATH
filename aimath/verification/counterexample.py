@@ -78,15 +78,20 @@ class CounterexampleSearcher:
                 error="Answer is None",
             )
         
+        # Extract actual answer value from SolverResult if needed
+        actual_answer = answer
+        if hasattr(answer, 'answer'):
+            actual_answer = answer.answer
+        
         counterexamples = []
         
         # Test based on problem type
         if problem.problem_type == ProblemType.EQUATION:
-            counterexamples = self._test_equation(problem, answer)
+            counterexamples = self._test_equation(problem, actual_answer)
         elif problem.problem_type in [ProblemType.DIFFERENTIATION, ProblemType.INTEGRATION]:
-            counterexamples = self._test_calculus(problem, answer)
+            counterexamples = self._test_calculus(problem, actual_answer)
         else:
-            counterexamples = self._test_general(problem, answer)
+            counterexamples = self._test_general(problem, actual_answer)
         
         if counterexamples:
             return VerificationCheck(
@@ -261,7 +266,9 @@ class CounterexampleSearcher:
                             # Symbolic answer
                             symbolic = answer_func(x)
                             
-                            if abs(numerical - symbolic) > self.tolerance * max(abs(numerical), 1):
+                            # Use relative tolerance for large values
+                            relative_diff = abs(numerical - symbolic) / max(abs(numerical), abs(symbolic), 1)
+                            if relative_diff > 1e-4:  # 0.01% tolerance
                                 counterexamples.append({
                                     'type': 'derivative_mismatch',
                                     'x': float(x),

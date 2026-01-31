@@ -199,7 +199,7 @@ class MathParser:
         Parse raw mathematical expression using SymPy.
         """
         try:
-            from sympy import sympify, Symbol
+            from sympy import sympify, Symbol, Eq
             from sympy.parsing.sympy_parser import (
                 parse_expr,
                 standard_transformations,
@@ -217,8 +217,22 @@ class MathParser:
             expr_str = input_str
             
             # Replace common notation
-            expr_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', expr_str)  # 2x -> 2*x
             expr_str = expr_str.replace('^', '**')  # ^ to **
+            
+            # Handle equations with = sign
+            if '=' in expr_str and expr_str.count('=') == 1:
+                lhs, rhs = expr_str.split('=')
+                lhs = lhs.strip()
+                rhs = rhs.strip()
+                
+                # Parse both sides
+                lhs_expr = parse_expr(lhs, transformations=transformations)
+                rhs_expr = parse_expr(rhs, transformations=transformations)
+                
+                return Eq(lhs_expr, rhs_expr)
+            
+            # For single expressions
+            expr_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', expr_str)  # 2x -> 2*x
             
             return parse_expr(expr_str, transformations=transformations)
             

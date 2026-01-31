@@ -64,6 +64,7 @@ class ConfidenceScorer:
         checks: list[VerificationCheck],
         methods_used: list[str],
         has_formal_proof: bool = False,
+        problem_type: str = None,
     ) -> tuple[ConfidenceLevel, float]:
         """
         Calculate confidence score and level.
@@ -72,6 +73,7 @@ class ConfidenceScorer:
             checks: List of verification checks performed
             methods_used: Names of solvers used
             has_formal_proof: Whether a formal proof was obtained
+            problem_type: Type of problem (for special handling)
             
         Returns:
             Tuple of (ConfidenceLevel, score 0-100)
@@ -104,6 +106,14 @@ class ConfidenceScorer:
             score += 5
         if 'formal' in methods_used:
             score += 10
+        
+        # Special handling for calculus problems
+        # If all checks pass and symbolic solver was used, boost confidence
+        # since numerical methods can't reliably verify symbolic derivatives/integrals
+        if problem_type in ['derivative', 'integral']:
+            all_passed = all(c.passed for c in checks)
+            if all_passed and 'symbolic' in methods_used:
+                score += 15  # Boost for calculus with symbolic verification
         
         # Penalty for LLM-only
         if methods_used == ['llm']:

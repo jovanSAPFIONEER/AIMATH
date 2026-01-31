@@ -199,7 +199,16 @@ class NaturalLanguageParser:
         expr_str = re.sub(r'\s+', '', expr_str)
         
         try:
-            return parse_expr(expr_str)
+            from sympy.parsing.sympy_parser import (
+                standard_transformations,
+                implicit_multiplication_application,
+                convert_xor,
+            )
+            transformations = (
+                standard_transformations + 
+                (implicit_multiplication_application, convert_xor)
+            )
+            return parse_expr(expr_str, transformations=transformations)
         except Exception as e:
             logger.warning(f"Expression parsing failed: {e}")
             # Return as string for further processing

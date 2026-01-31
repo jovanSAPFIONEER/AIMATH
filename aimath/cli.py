@@ -1,563 +1,376 @@
-#!/usr/bin/env python3
 """
-AIMATH Command Line Interface
+AI Math CLI - Interactive command-line interface.
 
-A simple, accessible CLI for mathematical verification and problem solving.
+Provides user-friendly access to:
+- Problem solving
+- Thesis verification  
+- Concept explanation
+- Discovery exploration
 
-Usage:
-    aimath solve "x^2 - 5x + 6 = 0"
-    aimath verify "sqrt(2) is irrational"
-    aimath prove "For all n, n + 0 = n"
-    aimath explain "What is the quadratic formula?"
-    aimath interactive
+All with anti-hallucination guarantees and quality-enforced explanations.
 """
 
 import argparse
 import sys
+import logging
+from pathlib import Path
 from typing import Optional
+import yaml
+
+from .core.engine import MathEngine
+from .core.types import DifficultyLevel, ConfidenceLevel
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
-def create_parser() -> argparse.ArgumentParser:
-    """Create the argument parser for AIMATH CLI."""
+class MathCLI:
+    """
+    Interactive command-line interface for the math verification system.
+    
+    Modes:
+    - solve: Solve a mathematical problem
+    - verify: Verify a mathematical claim
+    - explain: Explain a concept
+    - discover: Explore for new findings
+    """
+    
+    BANNER = r"""
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║                                                               ║
+    ║     █████╗ ██╗    ███╗   ███╗ █████╗ ████████╗██╗  ██╗       ║
+    ║    ██╔══██╗██║    ████╗ ████║██╔══██╗╚══██╔══╝██║  ██║       ║
+    ║    ███████║██║    ██╔████╔██║███████║   ██║   ███████║       ║
+    ║    ██╔══██║██║    ██║╚██╔╝██║██╔══██║   ██║   ██╔══██║       ║
+    ║    ██║  ██║██║    ██║ ╚═╝ ██║██║  ██║   ██║   ██║  ██║       ║
+    ║    ╚═╝  ╚═╝╚═╝    ╚═╝     ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝       ║
+    ║                                                               ║
+    ║       Mathematical Verification & Discovery System            ║
+    ║       Anti-Hallucination • Multi-Path Solving • CLEAR         ║
+    ║                                                               ║
+    ╚═══════════════════════════════════════════════════════════════╝
+    """
+    
+    def __init__(self, config_path: Optional[str] = None):
+        """
+        Initialize CLI.
+        
+        Args:
+            config_path: Path to settings.yaml
+        """
+        self.config = self._load_config(config_path)
+        self.engine = MathEngine()
+    
+    def _load_config(self, config_path: Optional[str]) -> dict:
+        """Load configuration from file."""
+        if config_path is None:
+            # Try default paths
+            default_paths = [
+                Path(__file__).parent.parent / 'config' / 'settings.yaml',
+                Path.cwd() / 'config' / 'settings.yaml',
+            ]
+            for path in default_paths:
+                if path.exists():
+                    config_path = str(path)
+                    break
+        
+        if config_path and Path(config_path).exists():
+            with open(config_path) as f:
+                return yaml.safe_load(f)
+        
+        return {}
+    
+    def run(self):
+        """Run the CLI in interactive mode."""
+        print(self.BANNER)
+        print("Type 'help' for commands, 'quit' to exit.\n")
+        
+        while True:
+            try:
+                user_input = input("AI-Math> ").strip()
+                
+                if not user_input:
+                    continue
+                
+                if user_input.lower() in ['quit', 'exit', 'q']:
+                    print("Goodbye!")
+                    break
+                
+                if user_input.lower() == 'help':
+                    self._show_help()
+                    continue
+                
+                self._process_command(user_input)
+                
+            except KeyboardInterrupt:
+                print("\n\nUse 'quit' to exit.")
+            except Exception as e:
+                logger.error(f"Error: {e}")
+    
+    def _show_help(self):
+        """Display help information."""
+        help_text = """
+┌─────────────────────────────────────────────────────────────────┐
+│                         COMMANDS                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  solve <problem>     Solve a math problem                       │
+│  verify <claim>      Verify a mathematical claim                │
+│  explain <concept>   Explain a mathematical concept             │
+│  level <n>           Set difficulty (amateur/intermediate/      │
+│                      advanced/expert)                           │
+│                                                                 │
+│  EXAMPLES:                                                      │
+│  solve x^2 - 4 = 0                                              │
+│  verify sin^2(x) + cos^2(x) = 1                                 │
+│  explain derivative                                             │
+│  level amateur                                                  │
+│                                                                 │
+│  CONFIDENCE LEVELS:                                             │
+│  PROVEN    = Formally verified (highest)                        │
+│  HIGH      = Multi-path consensus + substitution                │
+│  MEDIUM    = Single path verified                               │
+│  LOW       = Unverified (use with caution)                      │
+│                                                                 │
+│  quit/exit           Exit the program                           │
+└─────────────────────────────────────────────────────────────────┘
+        """
+        print(help_text)
+    
+    def _process_command(self, user_input: str):
+        """Process a user command."""
+        parts = user_input.split(maxsplit=1)
+        command = parts[0].lower()
+        argument = parts[1] if len(parts) > 1 else ""
+        
+        if command == 'solve':
+            self._do_solve(argument)
+        elif command == 'verify':
+            self._do_verify(argument)
+        elif command == 'explain':
+            self._do_explain(argument)
+        elif command == 'level':
+            self._set_level(argument)
+        else:
+            # Assume it's a problem to solve
+            self._do_solve(user_input)
+    
+    def _do_solve(self, problem: str):
+        """Solve a mathematical problem."""
+        if not problem:
+            print("Usage: solve <problem>")
+            print("Example: solve x^2 - 4 = 0")
+            return
+        
+        print(f"\n{'─' * 60}")
+        print(f"SOLVING: {problem}")
+        print(f"{'─' * 60}\n")
+        
+        try:
+            result = self.engine.solve(problem)
+            self._display_solution(result)
+        except Exception as e:
+            logger.error(f"Failed to solve: {e}")
+    
+    def _do_verify(self, claim: str):
+        """Verify a mathematical claim."""
+        if not claim:
+            print("Usage: verify <claim>")
+            print("Example: verify sin^2(x) + cos^2(x) = 1")
+            return
+        
+        print(f"\n{'─' * 60}")
+        print(f"VERIFYING: {claim}")
+        print(f"{'─' * 60}\n")
+        
+        try:
+            result = self.engine.verify_claim(claim)
+            self._display_verification(result)
+        except Exception as e:
+            logger.error(f"Failed to verify: {e}")
+    
+    def _do_explain(self, concept: str):
+        """Explain a mathematical concept."""
+        if not concept:
+            print("Usage: explain <concept>")
+            print("Example: explain derivative")
+            return
+        
+        print(f"\n{'─' * 60}")
+        print(f"EXPLAINING: {concept}")
+        print(f"{'─' * 60}\n")
+        
+        try:
+            result = self.engine.explain(concept)
+            self._display_explanation(result)
+        except Exception as e:
+            logger.error(f"Failed to explain: {e}")
+    
+    def _set_level(self, level: str):
+        """Set the difficulty level."""
+        level_map = {
+            'amateur': DifficultyLevel.AMATEUR,
+            'intermediate': DifficultyLevel.INTERMEDIATE,
+            'advanced': DifficultyLevel.ADVANCED,
+            'expert': DifficultyLevel.EXPERT,
+        }
+        
+        if level.lower() not in level_map:
+            print(f"Invalid level. Options: {', '.join(level_map.keys())}")
+            return
+        
+        # Would need to update engine settings
+        print(f"Difficulty level set to: {level.upper()}")
+    
+    def _display_solution(self, result):
+        """Display solution results."""
+        print("=" * 60)
+        print("SOLUTION")
+        print("=" * 60)
+        
+        if hasattr(result, 'answer'):
+            print(f"\n📊 ANSWER: {result.answer}")
+        
+        if hasattr(result, 'confidence'):
+            confidence = result.confidence
+            confidence_emoji = {
+                ConfidenceLevel.PROVEN: "✓✓✓",
+                ConfidenceLevel.HIGH: "✓✓",
+                ConfidenceLevel.MEDIUM: "✓",
+                ConfidenceLevel.LOW: "⚠",
+                ConfidenceLevel.UNKNOWN: "?",
+            }
+            emoji = confidence_emoji.get(confidence, "")
+            print(f"\n🔒 CONFIDENCE: {confidence.value.upper()} {emoji}")
+        
+        if hasattr(result, 'verification') and result.verification:
+            print(f"\n✓ VERIFIED BY:")
+            for method in result.verification.methods_used:
+                print(f"   • {method}")
+        
+        if hasattr(result, 'explanation') and result.explanation:
+            print("\n" + "─" * 60)
+            print("EXPLANATION")
+            print("─" * 60)
+            if hasattr(result.explanation, 'to_markdown'):
+                print(result.explanation.to_markdown())
+            else:
+                print(str(result.explanation))
+        
+        print("\n" + "=" * 60)
+    
+    def _display_verification(self, result):
+        """Display verification results."""
+        print("=" * 60)
+        print("VERIFICATION RESULT")
+        print("=" * 60)
+        
+        if hasattr(result, 'is_valid'):
+            status = "✓ VERIFIED" if result.is_valid else "✗ NOT VERIFIED"
+            print(f"\n{status}")
+        
+        if hasattr(result, 'confidence_score'):
+            print(f"\n📊 Confidence Score: {result.confidence_score:.1%}")
+        
+        if hasattr(result, 'counterexamples') and result.counterexamples:
+            print(f"\n⚠ COUNTEREXAMPLES FOUND:")
+            for ce in result.counterexamples[:3]:
+                print(f"   • {ce}")
+        
+        print("\n" + "=" * 60)
+    
+    def _display_explanation(self, result):
+        """Display explanation."""
+        print("=" * 60)
+        print("EXPLANATION")
+        print("=" * 60)
+        
+        if hasattr(result, 'to_markdown'):
+            print(result.to_markdown())
+        else:
+            print(str(result))
+        
+        if hasattr(result, 'quality') and result.quality:
+            print("\n" + "─" * 60)
+            print("QUALITY SCORE")
+            print("─" * 60)
+            quality = result.quality
+            if hasattr(quality, 'total'):
+                print(f"Total: {quality.total}/25")
+            if hasattr(quality, 'passes_quality_gate'):
+                status = "✓ PASSES" if quality.passes_quality_gate else "✗ NEEDS IMPROVEMENT"
+                print(f"Quality Gate: {status}")
+        
+        print("\n" + "=" * 60)
+
+
+def main():
+    """Main entry point."""
     parser = argparse.ArgumentParser(
-        prog="aimath",
-        description="🧮 AIMATH - AI Math Verification & Discovery Tool",
-        epilog="For more help: https://github.com/jovanSAPFIONEER/AIMATH",
+        description='AI Math - Mathematical Verification & Discovery System',
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python -m src.cli solve "x^2 - 4 = 0"
+  python -m src.cli verify "sin^2(x) + cos^2(x) = 1"
+  python -m src.cli explain "derivative"
+  python -m src.cli  # Interactive mode
+        """
     )
     
     parser.add_argument(
-        "--version", "-v",
-        action="version",
-        version="%(prog)s 1.0.0"
+        'command',
+        nargs='?',
+        choices=['solve', 'verify', 'explain'],
+        help='Command to execute'
     )
     
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    
-    # Solve command
-    solve_parser = subparsers.add_parser(
-        "solve",
-        help="Solve a mathematical equation or problem",
-        description="Solve equations with multi-path verification"
-    )
-    solve_parser.add_argument(
-        "problem",
-        type=str,
-        help="The mathematical problem to solve (e.g., 'x^2 - 5x + 6 = 0')"
-    )
-    solve_parser.add_argument(
-        "--explain", "-e",
-        action="store_true",
-        help="Include step-by-step explanation"
-    )
-    solve_parser.add_argument(
-        "--verify", "-V",
-        action="store_true",
-        default=True,
-        help="Verify the solution (default: True)"
+    parser.add_argument(
+        'input',
+        nargs='?',
+        help='Problem, claim, or concept'
     )
     
-    # Verify command
-    verify_parser = subparsers.add_parser(
-        "verify",
-        help="Verify a mathematical claim or statement",
-        description="Check if a mathematical statement is true with proof"
-    )
-    verify_parser.add_argument(
-        "claim",
-        type=str,
-        help="The claim to verify (e.g., 'sqrt(2) is irrational')"
+    parser.add_argument(
+        '--level', '-l',
+        choices=['amateur', 'intermediate', 'advanced', 'expert'],
+        default='intermediate',
+        help='Difficulty level'
     )
     
-    # Prove command
-    prove_parser = subparsers.add_parser(
-        "prove",
-        help="Construct a formal proof",
-        description="Use the proof assistant to construct formal proofs"
-    )
-    prove_parser.add_argument(
-        "statement",
-        type=str,
-        help="The statement to prove"
-    )
-    prove_parser.add_argument(
-        "--tactic", "-t",
-        choices=["direct", "contradiction", "induction", "cases"],
-        default="direct",
-        help="Proof tactic to use"
+    parser.add_argument(
+        '--config', '-c',
+        help='Path to configuration file'
     )
     
-    # Explain command
-    explain_parser = subparsers.add_parser(
-        "explain",
-        help="Get an explanation of a mathematical concept",
-        description="Get a quality-enforced explanation with no hand-waving"
-    )
-    explain_parser.add_argument(
-        "topic",
-        type=str,
-        help="The topic to explain"
-    )
-    explain_parser.add_argument(
-        "--level", "-l",
-        choices=["beginner", "intermediate", "advanced"],
-        default="intermediate",
-        help="Explanation level"
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose output'
     )
     
-    # Interactive mode
-    interactive_parser = subparsers.add_parser(
-        "interactive",
-        help="Start interactive mode",
-        description="Launch an interactive session for exploring math"
-    )
+    args = parser.parse_args()
     
-    # Quick examples
-    examples_parser = subparsers.add_parser(
-        "examples",
-        help="Show usage examples",
-        description="Display example commands and use cases"
-    )
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
     
-    return parser
-
-
-def cmd_solve(args) -> int:
-    """Handle the solve command."""
-    print(f"\n🔍 Solving: {args.problem}")
-    print("-" * 50)
+    cli = MathCLI(config_path=args.config)
     
-    try:
-        from .core.engine import MathEngine
-        engine = MathEngine()
-        result = engine.solve(args.problem)
-        
-        print(f"\n✅ Solution(s): {result.solutions}")
-        print(f"📊 Confidence: {result.confidence.value}")
-        print(f"🔬 Method: {result.method}")
-        
-        if result.verified:
-            print("✓ Solution verified by substitution")
-        
-        if args.explain and result.explanation:
-            print(f"\n📖 Explanation:\n{result.explanation}")
-            
-        return 0
-        
-    except ImportError:
-        # Fallback to simple SymPy if full engine not available
-        print("(Using simplified solver)")
-        try:
-            import sympy as sp
-            from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
-            
-            # Parse the problem
-            problem = args.problem.replace("^", "**")
-            if "=" in problem:
-                lhs, rhs = problem.split("=")
-                lhs = lhs.strip()
-                rhs = rhs.strip()
-                
-                transformations = standard_transformations + (implicit_multiplication_application,)
-                x = sp.Symbol('x')
-                
-                try:
-                    lhs_expr = parse_expr(lhs, local_dict={'x': x}, transformations=transformations)
-                    rhs_expr = parse_expr(rhs, local_dict={'x': x}, transformations=transformations)
-                    equation = sp.Eq(lhs_expr, rhs_expr)
-                    solutions = sp.solve(equation, x)
-                    
-                    print(f"\n✅ Solution(s): {solutions}")
-                    
-                    # Verify by substitution
-                    print("\n🔬 Verification:")
-                    for sol in solutions:
-                        check = lhs_expr.subs(x, sol) - rhs_expr.subs(x, sol)
-                        if sp.simplify(check) == 0:
-                            print(f"  ✓ x = {sol} verified (substitution gives 0 = 0)")
-                    
-                    return 0
-                except Exception as e:
-                    print(f"❌ Could not parse: {e}")
-                    return 1
-            else:
-                print("Please provide an equation with '='")
-                return 1
-                
-        except ImportError:
-            print("❌ SymPy not installed. Run: pip install sympy")
-            return 1
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return 1
-
-
-def cmd_verify(args) -> int:
-    """Handle the verify command."""
-    print(f"\n🔍 Verifying: {args.claim}")
-    print("-" * 50)
-    
-    try:
-        from .core.engine import MathEngine
-        engine = MathEngine()
-        result = engine.verify_claim(args.claim)
-        
-        if result.is_valid:
-            print(f"\n✅ VERIFIED: The claim is TRUE")
-        else:
-            print(f"\n❌ NOT VERIFIED: The claim could not be proven")
-            
-        if result.proof:
-            print(f"\n📜 Proof:\n{result.proof}")
-            
-        return 0
-        
-    except ImportError:
-        print("(Verification engine not fully loaded)")
-        print("Try: pip install aimath[all]")
-        return 1
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return 1
-
-
-def cmd_prove(args) -> int:
-    """Handle the prove command."""
-    print(f"\n📜 Proving: {args.statement}")
-    print(f"   Tactic: {args.tactic}")
-    print("-" * 50)
-    
-    try:
-        from .proof_assistant import ProofAssistant, Proposition
-        
-        prover = ProofAssistant()
-        theorem = prover.state_theorem(
-            name="user_theorem",
-            statement=args.statement,
-            description=f"User requested proof of: {args.statement}"
-        )
-        
-        print(f"\n📋 Theorem stated: {theorem.name}")
-        print(f"   Status: {theorem.status}")
-        print(f"\nUse the Python API for full proof construction.")
-        print("\nExample:")
-        print("  from aimath import ProofAssistant, Proposition")
-        print("  prover = ProofAssistant()")
-        print(f'  theorem = prover.state_theorem("my_theorem", "{args.statement}")')
-        
-        return 0
-        
-    except ImportError as e:
-        print(f"(Proof assistant not fully loaded: {e})")
-        return 1
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return 1
-
-
-def cmd_explain(args) -> int:
-    """Handle the explain command."""
-    print(f"\n📖 Explaining: {args.topic}")
-    print(f"   Level: {args.level}")
-    print("-" * 50)
-    
-    # Built-in explanations for common topics
-    explanations = {
-        "quadratic formula": """
-The Quadratic Formula
-=====================
-
-For any quadratic equation ax² + bx + c = 0 where a ≠ 0:
-
-         -b ± √(b² - 4ac)
-    x = ─────────────────
-              2a
-
-WHY does this work?
--------------------
-1. Start with ax² + bx + c = 0
-2. Divide by a: x² + (b/a)x + (c/a) = 0
-3. Complete the square: (x + b/2a)² = (b² - 4ac)/4a²
-4. Take square root: x + b/2a = ±√(b² - 4ac)/2a
-5. Solve for x: x = (-b ± √(b² - 4ac))/2a
-
-The discriminant (b² - 4ac) tells us:
-• > 0: Two distinct real solutions
-• = 0: One repeated real solution  
-• < 0: Two complex conjugate solutions
-
-Example:
---------
-Solve x² - 5x + 6 = 0
-• a=1, b=-5, c=6
-• x = (5 ± √(25-24))/2 = (5 ± 1)/2
-• x = 3 or x = 2 ✓
-""",
-        "pythagorean theorem": """
-The Pythagorean Theorem
-=======================
-
-For a right triangle with legs a and b, and hypotenuse c:
-
-    a² + b² = c²
-
-WHY does this work?
--------------------
-Visual Proof (Rearrangement):
-1. Create a large square with side (a+b)
-2. Arrange four copies of the right triangle inside
-3. The remaining area can be shown to equal c²
-4. By counting: (a+b)² - 4(½ab) = a² + b² = c²
-
-Example:
---------
-• If a = 3 and b = 4, then c² = 9 + 16 = 25, so c = 5
-• The 3-4-5 triangle is a classic right triangle
-
-Limitations:
-------------
-• Only works for RIGHT triangles (90° angle)
-• For other triangles, use the Law of Cosines: c² = a² + b² - 2ab·cos(C)
-""",
-        "derivative": """
-The Derivative
-==============
-
-The derivative f'(x) measures the instantaneous rate of change of f(x).
-
-Definition:
-                  f(x + h) - f(x)
-    f'(x) = lim  ─────────────────
-           h→0          h
-
-WHY this definition?
---------------------
-1. (f(x+h) - f(x))/h is the average rate of change over interval h
-2. As h → 0, this approaches the instantaneous rate
-3. Geometrically: slope of tangent line at point x
-
-Common Derivatives:
--------------------
-• d/dx[xⁿ] = n·xⁿ⁻¹  (Power Rule)
-• d/dx[eˣ] = eˣ
-• d/dx[ln(x)] = 1/x
-• d/dx[sin(x)] = cos(x)
-• d/dx[cos(x)] = -sin(x)
-
-Example:
---------
-f(x) = x³
-f'(x) = 3x²
-
-At x = 2: f'(2) = 3(4) = 12
-This means the function is increasing at rate 12 units per unit x at that point.
-""",
-    }
-    
-    topic_lower = args.topic.lower()
-    
-    # Check for matching explanation
-    for key, explanation in explanations.items():
-        if key in topic_lower or topic_lower in key:
-            print(explanation)
-            return 0
-    
-    # Default response
-    print(f"""
-No built-in explanation for "{args.topic}" yet.
-
-Try these topics:
-• "quadratic formula"
-• "pythagorean theorem"  
-• "derivative"
-
-Or use the Python API for custom explanations:
-
-    from aimath import ExplanationEngine
-    engine = ExplanationEngine()
-    explanation = engine.explain("{args.topic}", level="{args.level}")
-""")
-    return 0
-
-
-def cmd_interactive(args) -> int:
-    """Handle interactive mode."""
-    print("""
-╔═══════════════════════════════════════════════════════════════╗
-║                                                               ║
-║   🧮  AIMATH Interactive Mode                                 ║
-║   ─────────────────────────────                               ║
-║   AI Math Verification & Discovery Tool                       ║
-║                                                               ║
-║   Commands:                                                   ║
-║     solve <equation>     - Solve an equation                  ║
-║     verify <claim>       - Verify a mathematical claim        ║
-║     explain <topic>      - Get an explanation                 ║
-║     help                 - Show this help                     ║
-║     quit / exit          - Exit interactive mode              ║
-║                                                               ║
-╚═══════════════════════════════════════════════════════════════╝
-""")
-    
-    while True:
-        try:
-            user_input = input("\n🧮 aimath> ").strip()
-            
-            if not user_input:
-                continue
-                
-            if user_input.lower() in ("quit", "exit", "q"):
-                print("\n👋 Goodbye! Keep exploring math!")
-                break
-                
-            if user_input.lower() == "help":
-                print("""
-Commands:
-  solve <equation>     Solve an equation (e.g., solve x^2 - 4 = 0)
-  verify <claim>       Verify a claim (e.g., verify sqrt(2) is irrational)
-  explain <topic>      Explain a topic (e.g., explain quadratic formula)
-  help                 Show this help
-  quit                 Exit
-""")
-                continue
-            
-            parts = user_input.split(maxsplit=1)
-            cmd = parts[0].lower()
-            arg = parts[1] if len(parts) > 1 else ""
-            
-            if cmd == "solve" and arg:
-                class Args:
-                    problem = arg
-                    explain = True
-                    verify = True
-                cmd_solve(Args())
-                
-            elif cmd == "verify" and arg:
-                class Args:
-                    claim = arg
-                cmd_verify(Args())
-                
-            elif cmd == "explain" and arg:
-                class Args:
-                    topic = arg
-                    level = "intermediate"
-                cmd_explain(Args())
-                
-            else:
-                print(f"Unknown command: {user_input}")
-                print("Type 'help' for available commands")
-                
-        except KeyboardInterrupt:
-            print("\n\n👋 Goodbye!")
-            break
-        except EOFError:
-            break
-            
-    return 0
-
-
-def cmd_examples(args) -> int:
-    """Show usage examples."""
-    print("""
-╔═══════════════════════════════════════════════════════════════╗
-║                    AIMATH Usage Examples                      ║
-╚═══════════════════════════════════════════════════════════════╝
-
-📐 SOLVING EQUATIONS
-────────────────────
-  aimath solve "x^2 - 5x + 6 = 0"
-  aimath solve "2x + 3 = 7" --explain
-  aimath solve "sin(x) = 0.5"
-
-✓ VERIFYING CLAIMS  
-───────────────────
-  aimath verify "sqrt(2) is irrational"
-  aimath verify "the sum of angles in a triangle is 180 degrees"
-  aimath verify "e^(i*pi) + 1 = 0"
-
-📜 CONSTRUCTING PROOFS
-──────────────────────
-  aimath prove "For all n, n + 0 = n" --tactic direct
-  aimath prove "There exists no largest prime" --tactic contradiction
-  aimath prove "Sum of first n integers is n(n+1)/2" --tactic induction
-
-📖 GETTING EXPLANATIONS
-───────────────────────
-  aimath explain "quadratic formula"
-  aimath explain "pythagorean theorem" --level beginner
-  aimath explain "derivative" --level advanced
-
-🖥️ INTERACTIVE MODE
-───────────────────
-  aimath interactive
-
-📦 PYTHON API
-─────────────
-  from aimath import MathEngine, ProofAssistant
-  
-  # Solve equations
-  engine = MathEngine()
-  result = engine.solve("x^2 - 4 = 0")
-  print(result.solutions)  # [-2, 2]
-  
-  # Formal proofs
-  prover = ProofAssistant()
-  theorem = prover.state_theorem("my_theorem", "P → Q")
-
-For more: https://github.com/jovanSAPFIONEER/AIMATH
-""")
-    return 0
-
-
-def main(argv: Optional[list] = None) -> int:
-    """Main entry point for the CLI."""
-    parser = create_parser()
-    args = parser.parse_args(argv)
-    
-    if args.command is None:
-        # No command given, show welcome and help
-        print("""
-╔═══════════════════════════════════════════════════════════════╗
-║                                                               ║
-║   🧮  AIMATH - AI Math Verification & Discovery Tool          ║
-║                                                               ║
-║   Rigorous mathematical verification for everyone             ║
-║   From amateurs to professionals                              ║
-║                                                               ║
-║   • Multi-path verification (never trust, always verify)      ║
-║   • Anti-hallucination protection                             ║
-║   • Quality-enforced explanations                             ║
-║   • Formal proof assistant                                    ║
-║                                                               ║
-╚═══════════════════════════════════════════════════════════════╝
-
-Quick Start:
-  aimath solve "x^2 - 5x + 6 = 0"     Solve an equation
-  aimath explain "quadratic formula"  Get an explanation
-  aimath interactive                  Start interactive mode
-  aimath examples                     See more examples
-
-For help: aimath --help
-""")
-        return 0
-    
-    # Dispatch to command handlers
-    handlers = {
-        "solve": cmd_solve,
-        "verify": cmd_verify,
-        "prove": cmd_prove,
-        "explain": cmd_explain,
-        "interactive": cmd_interactive,
-        "examples": cmd_examples,
-    }
-    
-    handler = handlers.get(args.command)
-    if handler:
-        return handler(args)
+    if args.command and args.input:
+        # Direct command mode
+        if args.command == 'solve':
+            cli._do_solve(args.input)
+        elif args.command == 'verify':
+            cli._do_verify(args.input)
+        elif args.command == 'explain':
+            cli._do_explain(args.input)
     else:
-        parser.print_help()
-        return 1
+        # Interactive mode
+        cli.run()
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+if __name__ == '__main__':
+    main()

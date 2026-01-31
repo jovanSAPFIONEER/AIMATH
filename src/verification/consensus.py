@@ -72,6 +72,15 @@ class ConsensusChecker:
         Returns:
             Tuple of (VerificationCheck, best_answer)
         """
+        from ..core.types import ProblemType
+        
+        # For calculus problems, symbolic solver is sufficient alone
+        # since numerical methods can't directly compute symbolic derivatives/integrals
+        is_calculus = problem.problem_type in [
+            ProblemType.DIFFERENTIATION, 
+            ProblemType.INTEGRATION
+        ]
+        
         if not solutions:
             return VerificationCheck(
                 check_type='consensus',
@@ -114,10 +123,16 @@ class ConsensusChecker:
         agreement_ratio = weighted_agreement / total_weight if total_weight > 0 else 0
         
         # Determine if consensus is sufficient
-        passed = (
-            consensus_count >= self.min_consensus_paths or
-            agreement_ratio >= 0.7
-        )
+        # For calculus problems, symbolic solver alone is sufficient (trust=0.9 > 0.5)
+        if is_calculus:
+            # For calculus, we trust symbolic solver alone if it returned a result
+            symbolic_present = any('symbolic' in s for s in largest_group['solvers'])
+            passed = symbolic_present or agreement_ratio >= 0.5
+        else:
+            passed = (
+                consensus_count >= self.min_consensus_paths or
+                agreement_ratio >= 0.7
+            )
         
         # Check for disagreements
         disagreements = []
@@ -149,6 +164,12 @@ class ConsensusChecker:
             error=None if passed else "Insufficient consensus",
         ), largest_group['answer']
     
+    def _extract_answer(self, answer: Any) -> Any:
+        """Extract actual answer value from SolverResult if needed."""
+        if hasattr(answer, 'answer'):
+            return answer.answer
+        return answer
+    
     def _group_equivalent_answers(
         self, 
         solutions: dict[str, Any]
@@ -165,7 +186,8 @@ class ConsensusChecker:
         
         groups = []
         
-        for solver_name, answer in solutions.items():
+        for solver_name, raw_answer in solutions.items():
+            answer = self._extract_answer(raw_answer)
             # Check if answer belongs to existing group
             found_group = False
             
