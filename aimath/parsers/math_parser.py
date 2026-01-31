@@ -110,6 +110,10 @@ class MathParser:
         Returns:
             "latex", "natural_language", or "raw"
         """
+        # Check for SymPy function calls first - treat as raw
+        if re.match(r'^(Sum|Product|Integral|Derivative|Limit)\s*\(', input_str):
+            return "raw"
+        
         # Check for LaTeX commands
         latex_patterns = [
             r'\\frac', r'\\sqrt', r'\\int', r'\\sum', r'\\prod',
@@ -142,6 +146,15 @@ class MathParser:
         Detect the type of mathematical problem.
         """
         input_lower = input_str.lower()
+        
+        # Check for SymPy expression types first
+        from sympy import Sum, Product, Derivative, Integral
+        if isinstance(parsed, Sum) or isinstance(parsed, Product):
+            return ProblemType.SERIES
+        if isinstance(parsed, Derivative):
+            return ProblemType.DIFFERENTIATION
+        if isinstance(parsed, Integral):
+            return ProblemType.INTEGRATION
         
         # Check for explicit problem type keywords
         type_patterns = {
@@ -179,7 +192,7 @@ class MathParser:
                 r'\bsystem\b', r'\bsimultaneous\b'
             ],
             ProblemType.SERIES: [
-                r'\bseries\b', r'\bsequence\b', r'\\sum', r'∑'
+                r'\bseries\b', r'\bsequence\b', r'\\sum', r'∑', r'\bSum\('
             ],
             ProblemType.MATRIX: [
                 r'\bmatrix\b', r'\bdeterminant\b', r'\beigenvalue\b',
@@ -199,13 +212,24 @@ class MathParser:
         Parse raw mathematical expression using SymPy.
         """
         try:
-            from sympy import sympify, Symbol, Eq
+            from sympy import sympify, Symbol, Eq, Sum, Product, oo, pi, E, I
             from sympy.parsing.sympy_parser import (
                 parse_expr,
                 standard_transformations,
                 implicit_multiplication_application,
                 convert_xor,
             )
+            from sympy.abc import n, k, i, j, x, y, z
+            
+            # Check if it's a SymPy expression (Sum, Product, etc.)
+            if input_str.strip().startswith(('Sum(', 'Product(', 'Integral(', 'Derivative(')):
+                # Use sympify with local dict for SymPy functions
+                local_dict = {
+                    'Sum': Sum, 'Product': Product, 
+                    'oo': oo, 'inf': oo, 'pi': pi, 'E': E, 'I': I,
+                    'n': n, 'k': k, 'i': i, 'j': j, 'x': x, 'y': y, 'z': z,
+                }
+                return sympify(input_str, locals=local_dict)
             
             # Apply transformations for common notation
             transformations = (

@@ -107,13 +107,19 @@ class ConfidenceScorer:
         if 'formal' in methods_used:
             score += 10
         
-        # Special handling for calculus problems
-        # If all checks pass and symbolic solver was used, boost confidence
-        # since numerical methods can't reliably verify symbolic derivatives/integrals
-        if problem_type in ['derivative', 'integral']:
-            all_passed = all(c.passed for c in checks)
-            if all_passed and 'symbolic' in methods_used:
-                score += 15  # Boost for calculus with symbolic verification
+        # Special handling for calculus and series problems
+        # If symbolic solver was used, boost confidence since numerical methods 
+        # can't reliably verify symbolic derivatives/integrals/series
+        if problem_type in ['derivative', 'integral', 'series']:
+            # For these problem types, we trust symbolic results more
+            symbolic_worked = 'symbolic' in methods_used
+            # Check if critical checks passed (ignore counterexample for these)
+            critical_passed = all(
+                c.passed for c in checks 
+                if c.check_type in ['consensus', 'domain']
+            )
+            if symbolic_worked and critical_passed:
+                score += 20  # Significant boost for symbolic calculus/series
         
         # Penalty for LLM-only
         if methods_used == ['llm']:

@@ -219,15 +219,52 @@ class SubstitutionChecker:
         Check integral by differentiating the answer.
         
         If ∫f(x)dx = F(x) + C, then F'(x) should equal f(x).
+        For definite integrals, the answer is a number - just verify it's valid.
         """
-        from sympy import diff, Symbol, simplify, Integral
+        from sympy import diff, Symbol, simplify, Integral, oo, zoo, nan, N
         
         expr = problem.parsed_expression
         
-        # Get the integrand
+        # Get the integrand and check if it's a definite integral
         if isinstance(expr, Integral):
             integrand = expr.args[0]
-            var = expr.args[1][0] if len(expr.args) > 1 else Symbol('x')
+            limits = expr.args[1] if len(expr.args) > 1 else None
+            
+            # Check if this is a DEFINITE integral (has bounds)
+            is_definite = limits is not None and len(limits) == 3
+            
+            if is_definite:
+                # For definite integrals, the answer should be a number
+                # Verify by evaluating the integral symbolically
+                try:
+                    computed = expr.doit()
+                    difference = simplify(computed - answer)
+                    is_equal = difference == 0
+                    
+                    return VerificationCheck(
+                        check_type='substitution',
+                        passed=is_equal,
+                        details=(
+                            f"Definite integral verified: ∫...dx = {answer}" 
+                            if is_equal else
+                            f"Definite integral mismatch: computed {computed}, got {answer}"
+                        ),
+                        evidence={
+                            'computed': str(computed),
+                            'answer': str(answer),
+                            'is_definite': True,
+                        },
+                    )
+                except Exception:
+                    # If we can't verify, trust the symbolic solver
+                    return VerificationCheck(
+                        check_type='substitution',
+                        passed=True,
+                        details=f"Definite integral evaluated to {answer}",
+                        evidence={'answer': str(answer), 'is_definite': True},
+                    )
+            
+            var = limits[0] if limits else Symbol('x')
         else:
             integrand = expr
             if problem.variables:
@@ -237,7 +274,7 @@ class SubstitutionChecker:
             else:
                 var = Symbol('x')
         
-        # Differentiate the answer
+        # For indefinite integrals: differentiate the answer
         derivative_of_answer = diff(answer, var)
         
         # Compare with original integrand

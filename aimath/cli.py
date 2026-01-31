@@ -17,8 +17,16 @@ from pathlib import Path
 from typing import Optional
 import yaml
 
-from .core.engine import MathEngine
-from .core.types import DifficultyLevel, ConfidenceLevel
+# Handle both direct execution and module import
+if __name__ == "__main__" or __package__ is None:
+    # Running as script - add parent to path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from aimath.core.engine import MathEngine
+    from aimath.core.types import DifficultyLevel, ConfidenceLevel
+else:
+    # Running as module
+    from .core.engine import MathEngine
+    from .core.types import DifficultyLevel, ConfidenceLevel
 
 # Set up logging
 logging.basicConfig(
@@ -117,23 +125,37 @@ class MathCLI:
 ┌─────────────────────────────────────────────────────────────────┐
 │                         COMMANDS                                 │
 ├─────────────────────────────────────────────────────────────────┤
+│  CORE COMMANDS:                                                 │
 │  solve <problem>     Solve a math problem                       │
 │  verify <claim>      Verify a mathematical claim                │
 │  explain <concept>   Explain a mathematical concept             │
-│  level <n>           Set difficulty (amateur/intermediate/      │
-│                      advanced/expert)                           │
+│  ask <question>      Natural language math question             │
+│                                                                 │
+│  ADVANCED SOLVERS:                                              │
+│  integrate <expr>    Hybrid integration (symbolic + numeric)    │
+│  contour <expr>      Contour integration (residue theorem)      │
+│  ode <equation>      Solve ordinary differential equation       │
+│  pde <equation>      Solve partial differential equation        │
+│  matrix <op> [[..]]  Linear algebra (eigenvals, det, inv, etc)  │
+│  optimize <func>     Find extrema of a function                 │
+│                                                                 │
+│  TOOLS:                                                         │
+│  test <claim>        Fuzz-test a conjecture (find counterexamples)│
+│  recognize <value>   Identify constant (e.g., 0.5140 → 5π²/96)  │
+│  steps <problem>     Show detailed solution steps               │
+│  feynman <expr>      Apply Feynman's differentiation trick      │
 │                                                                 │
 │  EXAMPLES:                                                      │
 │  solve x^2 - 4 = 0                                              │
-│  verify sin^2(x) + cos^2(x) = 1                                 │
-│  explain derivative                                             │
-│  level amateur                                                  │
+│  integrate atan(sqrt(x**2+2))/((x**2+1)*sqrt(x**2+2)) from 0 to 1│
+│  contour 1/(x**2 + 1)                                           │
+│  test sin(x)**2 + cos(x)**2 = 1                                 │
+│  test (a+b)**2 = a**2 + b**2                                    │
+│  pde u_t = u_xx  (heat equation)                                │
+│  recognize 0.514041895890                                       │
 │                                                                 │
-│  CONFIDENCE LEVELS:                                             │
-│  PROVEN    = Formally verified (highest)                        │
-│  HIGH      = Multi-path consensus + substitution                │
-│  MEDIUM    = Single path verified                               │
-│  LOW       = Unverified (use with caution)                      │
+│  SETTINGS:                                                      │
+│  level <n>           Set difficulty level                       │
 │                                                                 │
 │  quit/exit           Exit the program                           │
 └─────────────────────────────────────────────────────────────────┘
@@ -154,6 +176,28 @@ class MathCLI:
             self._do_explain(argument)
         elif command == 'level':
             self._set_level(argument)
+        elif command == 'ask':
+            self._do_ask(argument)
+        elif command == 'ode':
+            self._do_ode(argument)
+        elif command == 'matrix':
+            self._do_matrix(argument)
+        elif command == 'optimize':
+            self._do_optimize(argument)
+        elif command == 'steps':
+            self._do_steps(argument)
+        elif command == 'integrate':
+            self._do_integrate(argument)
+        elif command == 'feynman':
+            self._do_feynman(argument)
+        elif command == 'recognize':
+            self._do_recognize(argument)
+        elif command == 'contour':
+            self._do_contour(argument)
+        elif command == 'pde':
+            self._do_pde(argument)
+        elif command == 'test':
+            self._do_test(argument)
         else:
             # Assume it's a problem to solve
             self._do_solve(user_input)
@@ -224,6 +268,491 @@ class MathCLI:
         
         # Would need to update engine settings
         print(f"Difficulty level set to: {level.upper()}")
+    
+    def _do_ask(self, question: str):
+        """Answer a natural language math question."""
+        if not question:
+            print("Usage: ask <question>")
+            print("Example: ask derivative of x cubed")
+            return
+        
+        print(f"\n{'─' * 60}")
+        print(f"QUESTION: {question}")
+        print(f"{'─' * 60}\n")
+        
+        try:
+            try:
+                from aimath.parsers.natural_language_parser import NaturalLanguageParser
+            except ImportError:
+                from parsers.natural_language_parser import NaturalLanguageParser
+            parser = NaturalLanguageParser()
+            details = parser.explain_parse(question)
+            
+            print(f"📝 Interpreted as: {details['sympy_code']}")
+            print(f"📊 Method: {details['method']}")
+            print(f"\n✅ ANSWER: {details['result']}")
+            
+            if details.get('result_latex'):
+                print(f"📐 LaTeX: {details['result_latex']}")
+        except Exception as e:
+            logger.error(f"Failed to process question: {e}")
+    
+    def _do_ode(self, equation: str):
+        """Solve a differential equation."""
+        if not equation:
+            print("Usage: ode <equation>")
+            print("Examples:")
+            print("  ode y' + 2*y = x")
+            print("  ode y'' + y = 0")
+            return
+        
+        print(f"\n{'─' * 60}")
+        print(f"SOLVING ODE: {equation}")
+        print(f"{'─' * 60}\n")
+        
+        try:
+            try:
+                from aimath.solvers.differential_equations import ODESolver
+            except ImportError:
+                from solvers.differential_equations import ODESolver
+            solver = ODESolver()
+            result = solver.solve(equation)
+            
+            print(f"📋 ODE Type: {result.ode_type}")
+            print(f"📊 Classification: {', '.join(result.classification[:3])}")
+            print()
+            
+            for step in result.steps:
+                print(f"  {step}")
+            
+            print(f"\n✅ SOLUTION: {result.solution}")
+            
+            if result.particular_solution:
+                print(f"📌 PARTICULAR: {result.particular_solution}")
+            
+            print(f"\n🔒 Verified: {'Yes ✓' if result.is_verified else 'No ⚠'}")
+        except Exception as e:
+            logger.error(f"Failed to solve ODE: {e}")
+    
+    def _do_matrix(self, args: str):
+        """Perform linear algebra operations."""
+        if not args:
+            print("Usage: matrix <operation> [[...]]")
+            print("Operations: eigenvals, eigenvects, det, inv, rref, lu, qr, nullspace")
+            print("Example: matrix eigenvals [[1, 2], [2, 1]]")
+            return
+        
+        parts = args.split(maxsplit=1)
+        operation = parts[0].lower()
+        matrix_str = parts[1] if len(parts) > 1 else ""
+        
+        if not matrix_str:
+            print("Please provide a matrix, e.g.: [[1, 2], [3, 4]]")
+            return
+        
+        print(f"\n{'─' * 60}")
+        print(f"MATRIX {operation.upper()}")
+        print(f"{'─' * 60}\n")
+        
+        try:
+            try:
+                from aimath.solvers.linear_algebra import solve_linear_algebra
+            except ImportError:
+                from solvers.linear_algebra import solve_linear_algebra
+            result = solve_linear_algebra(matrix_str, operation)
+            
+            print(f"📊 Input Matrix:")
+            print(f"  {result.input_matrix}")
+            print()
+            
+            for step in result.steps:
+                print(f"  {step}")
+            
+            print(f"\n✅ RESULT: {result.result}")
+            
+            if result.properties:
+                print(f"\n📋 Properties:")
+                for k, v in result.properties.items():
+                    print(f"  • {k}: {v}")
+        except Exception as e:
+            logger.error(f"Failed matrix operation: {e}")
+    
+    def _do_optimize(self, func: str):
+        """Find extrema of a function."""
+        if not func:
+            print("Usage: optimize <function>")
+            print("Examples:")
+            print("  optimize x**2 + y**2 - 2*x")
+            print("  optimize x**3 - 3*x")
+            return
+        
+        print(f"\n{'─' * 60}")
+        print(f"OPTIMIZING: {func}")
+        print(f"{'─' * 60}\n")
+        
+        try:
+            try:
+                from aimath.solvers.optimization import Optimizer
+            except ImportError:
+                from solvers.optimization import Optimizer
+            opt = Optimizer()
+            result = opt.find_critical_points(func)
+            
+            for step in result.steps:
+                print(f"  {step}")
+            
+            print(f"\n📊 CRITICAL POINTS:")
+            for cp in result.critical_points:
+                print(f"  • {cp.point}")
+                print(f"    Value: {cp.value}")
+                print(f"    Type: {cp.classification}")
+            
+            if result.global_min:
+                print(f"\n🔻 GLOBAL MINIMUM: {result.global_min.point} = {result.global_min.value}")
+            if result.global_max:
+                print(f"🔺 GLOBAL MAXIMUM: {result.global_max.point} = {result.global_max.value}")
+        except Exception as e:
+            logger.error(f"Failed to optimize: {e}")
+    
+    def _do_steps(self, problem: str):
+        """Show detailed solution steps."""
+        if not problem:
+            print("Usage: steps <problem>")
+            print("Examples:")
+            print("  steps Derivative(x**3, x)")
+            print("  steps Integral(sin(x), x)")
+            return
+        
+        print(f"\n{'─' * 60}")
+        print(f"STEP-BY-STEP: {problem}")
+        print(f"{'─' * 60}\n")
+        
+        try:
+            from sympy import sympify, Derivative, Integral
+            try:
+                from aimath.solvers.calculus_steps import (
+                    get_derivative_steps, get_integral_steps, format_steps_text
+                )
+            except ImportError:
+                from solvers.calculus_steps import (
+                    get_derivative_steps, get_integral_steps, format_steps_text
+                )
+            
+            expr = sympify(problem)
+            
+            if isinstance(expr, Derivative) or 'Derivative' in problem:
+                steps = get_derivative_steps(expr)
+            elif isinstance(expr, Integral) or 'Integral' in problem:
+                steps = get_integral_steps(expr)
+            else:
+                # Try derivative by default
+                steps = get_derivative_steps(expr)
+            
+            print(format_steps_text(steps))
+        except Exception as e:
+            logger.error(f"Failed to generate steps: {e}")
+    
+    def _do_integrate(self, expr_str: str):
+        """Hybrid integration with constant recognition."""
+        if not expr_str:
+            print("Usage: integrate <expression> [from <a> to <b>]")
+            print("Examples:")
+            print("  integrate x**2 from 0 to 1")
+            print("  integrate sin(x)/x from 0 to oo")
+            print("  integrate atan(sqrt(x**2+2))/((x**2+1)*sqrt(x**2+2)) from 0 to 1")
+            return
+        
+        print(f"\n{'═' * 60}")
+        print(f"HYBRID INTEGRATION")
+        print(f"{'═' * 60}\n")
+        
+        try:
+            try:
+                from aimath.solvers.hybrid_integrator import solve_integral, print_integration_result
+            except ImportError:
+                from solvers.hybrid_integrator import solve_integral, print_integration_result
+            
+            result = solve_integral(expr_str)
+            print_integration_result(result)
+            
+        except Exception as e:
+            logger.error(f"Integration failed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _do_feynman(self, expr_str: str):
+        """Apply Feynman's differentiation under the integral sign."""
+        if not expr_str:
+            print("Usage: feynman <integrand> --param <a> [--var <x>] [--from <lower>] [--to <upper>]")
+            print("Examples:")
+            print("  feynman sin(x)/x * exp(-a*x) --param a --from 0 --to oo")
+            print("  feynman x**a --param a --from 0 --to 1")
+            return
+        
+        print(f"\n{'═' * 60}")
+        print(f"FEYNMAN'S TECHNIQUE")
+        print(f"{'═' * 60}\n")
+        
+        try:
+            try:
+                from aimath.solvers.feynman_trick import diff_under_integral, suggest_parameterization
+            except ImportError:
+                from solvers.feynman_trick import diff_under_integral, suggest_parameterization
+            
+            from sympy import symbols, sympify, oo as sym_oo
+            import re
+            
+            # Parse arguments
+            parts = expr_str.split('--')
+            integrand_str = parts[0].strip()
+            
+            # Default values
+            param = 'a'
+            var = 'x'
+            lower = None
+            upper = None
+            
+            for part in parts[1:]:
+                part = part.strip()
+                if part.startswith('param'):
+                    param = part.split()[1]
+                elif part.startswith('var'):
+                    var = part.split()[1]
+                elif part.startswith('from'):
+                    lower = part.split()[1]
+                elif part.startswith('to'):
+                    upper = part.split()[1]
+            
+            # Create symbols
+            x = symbols(var)
+            a = symbols(param, positive=True)
+            
+            # Parse integrand
+            integrand = sympify(integrand_str)
+            
+            # Parse limits
+            if lower:
+                lower = sym_oo if lower == 'oo' else sympify(lower)
+            if upper:
+                upper = sym_oo if upper == 'oo' else sympify(upper)
+            
+            # Apply differentiation under integral
+            result = diff_under_integral(integrand, x, a, lower, upper)
+            
+            print(f"Integrand: {integrand}")
+            print(f"Integration variable: {var}")
+            print(f"Parameter: {param}")
+            print()
+            print(f"∂/∂{param} [{integrand}] = {result['partial_derivative']}")
+            print(f"LaTeX: {result['partial_derivative_latex']}")
+            
+            if 'new_integral' in result:
+                print(f"\nNew integral: {result['new_integral']}")
+            
+            if 'evaluated' in result:
+                print(f"\n✅ Evaluated: {result['evaluated']}")
+                print(f"   LaTeX: {result['evaluated_latex']}")
+            
+            # Suggest parameterizations if just an expression
+            if '--param' not in expr_str:
+                print("\n" + "─" * 40)
+                print("💡 Suggested parameterizations:")
+                suggestions = suggest_parameterization(integrand, x)
+                for s in suggestions:
+                    print(f"\n  • {s['strategy']}")
+                    print(f"    {s['description']}")
+            
+        except Exception as e:
+            logger.error(f"Feynman's technique failed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _do_recognize(self, value_str: str):
+        """Recognize a numerical constant."""
+        if not value_str:
+            print("Usage: recognize <decimal_value>")
+            print("Examples:")
+            print("  recognize 0.514041895890")
+            print("  recognize 3.14159265359")
+            print("  recognize 1.64493406685")
+            return
+        
+        print(f"\n{'═' * 60}")
+        print(f"CONSTANT RECOGNITION")
+        print(f"{'═' * 60}\n")
+        
+        try:
+            try:
+                from aimath.solvers.constant_recognizer import recognize_constant, identify_constant
+            except ImportError:
+                from solvers.constant_recognizer import recognize_constant, identify_constant
+            
+            value = float(value_str.strip())
+            
+            print(f"Input value: {value}")
+            print()
+            
+            result = recognize_constant(value)
+            
+            if result:
+                print(f"✅ RECOGNIZED!")
+                print(f"   Symbolic form: {result.recognized_form}")
+                print(f"   LaTeX: {result.latex}")
+                print(f"   Confidence: {result.confidence}")
+                print(f"   Method: {result.method}")
+                print(f"   Error: {result.error:.2e}")
+            else:
+                print("❌ Could not identify as a known mathematical constant")
+                print("   The value may be:")
+                print("   • A transcendental number with no simple form")
+                print("   • A combination of constants not in our database")
+                print("   • Numerical noise from computation")
+            
+        except ValueError:
+            logger.error(f"Invalid number: {value_str}")
+        except Exception as e:
+            logger.error(f"Recognition failed: {e}")
+    
+    def _do_contour(self, expr_str: str):
+        """Contour integration using residue theorem."""
+        if not expr_str:
+            print("Usage: contour <expression>")
+            print("Examples:")
+            print("  contour 1/(x**2 + 1)")
+            print("  contour 1/(x**2 + 1)**2")
+            print("  contour x**2/(x**4 + 1)")
+            return
+        
+        print(f"\n{'═' * 60}")
+        print(f"CONTOUR INTEGRATION (Residue Theorem)")
+        print(f"{'═' * 60}\n")
+        
+        try:
+            try:
+                from aimath.solvers.contour_integration import real_integral_via_contour, print_contour_result
+            except ImportError:
+                from solvers.contour_integration import real_integral_via_contour, print_contour_result
+            
+            from sympy import Symbol, sympify
+            x = Symbol('x')
+            expr = sympify(expr_str)
+            
+            result = real_integral_via_contour(expr, x)
+            print_contour_result(result)
+            
+        except Exception as e:
+            logger.error(f"Contour integration failed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _do_pde(self, pde_str: str):
+        """Solve a partial differential equation."""
+        if not pde_str:
+            print("Usage: pde <equation>")
+            print("Examples:")
+            print("  pde u_t = u_xx           (heat equation)")
+            print("  pde u_tt = c**2 * u_xx   (wave equation)")
+            print("  pde u_t + c*u_x = 0      (transport equation)")
+            return
+        
+        print(f"\n{'═' * 60}")
+        print(f"PDE SOLVER")
+        print(f"{'═' * 60}\n")
+        
+        try:
+            try:
+                from aimath.solvers.pde_solver import solve_pde_separation, print_pde_solution, solve_transport_equation
+            except ImportError:
+                from solvers.pde_solver import solve_pde_separation, print_pde_solution, solve_transport_equation
+            
+            from sympy import Symbol, Function, Eq, Derivative, sympify, symbols
+            
+            x, t = symbols('x t')
+            u = Function('u')(x, t)
+            
+            # Parse user-friendly notation (order matters - longer patterns first!)
+            pde_str = pde_str.replace('u_xx', 'Derivative(u(x,t), (x, 2))')
+            pde_str = pde_str.replace('u_tt', 'Derivative(u(x,t), (t, 2))')
+            pde_str = pde_str.replace('u_x', 'Derivative(u(x,t), x)')
+            pde_str = pde_str.replace('u_t', 'Derivative(u(x,t), t)')
+            
+            # Handle equation
+            if '=' in pde_str:
+                parts = pde_str.split('=')
+                lhs = sympify(parts[0].strip())
+                rhs = sympify(parts[1].strip())
+                pde_eq = Eq(lhs, rhs)
+            else:
+                pde_eq = Eq(sympify(pde_str), 0)
+            
+            result = solve_pde_separation(pde_eq, u, x, t)
+            print_pde_solution(result)
+            
+        except Exception as e:
+            logger.error(f"PDE solver failed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _do_test(self, claim: str):
+        """Test a mathematical conjecture (fuzz testing)."""
+        if not claim:
+            print("Usage: test <LHS> = <RHS>")
+            print("Examples:")
+            print("  test sin(x)**2 + cos(x)**2 = 1")
+            print("  test (a+b)**2 = a**2 + b**2")
+            print("  test x**x = exp(x)")
+            print("  test exp(x) >= 1 + x")
+            return
+        
+        print(f"\n{'═' * 60}")
+        print(f"CONJECTURE TESTER (Fuzz Verification)")
+        print(f"{'═' * 60}\n")
+        
+        try:
+            try:
+                from aimath.solvers.conjecture_tester import test_conjecture, test_inequality, print_conjecture_result
+            except ImportError:
+                from solvers.conjecture_tester import test_conjecture, test_inequality, print_conjecture_result
+            
+            from sympy import sympify
+            
+            # Check for inequality
+            if '>=' in claim:
+                parts = claim.split('>=')
+                lhs = sympify(parts[0].strip())
+                rhs = sympify(parts[1].strip())
+                result = test_inequality(lhs, rhs, '>=')
+            elif '<=' in claim:
+                parts = claim.split('<=')
+                lhs = sympify(parts[0].strip())
+                rhs = sympify(parts[1].strip())
+                result = test_inequality(lhs, rhs, '<=')
+            elif '>' in claim and '>=' not in claim:
+                parts = claim.split('>')
+                lhs = sympify(parts[0].strip())
+                rhs = sympify(parts[1].strip())
+                result = test_inequality(lhs, rhs, '>')
+            elif '<' in claim and '<=' not in claim:
+                parts = claim.split('<')
+                lhs = sympify(parts[0].strip())
+                rhs = sympify(parts[1].strip())
+                result = test_inequality(lhs, rhs, '<')
+            elif '=' in claim:
+                # Equality test
+                parts = claim.split('=')
+                lhs = sympify(parts[0].strip())
+                rhs = sympify(parts[1].strip())
+                result = test_conjecture(lhs, rhs, trials=1000)
+            else:
+                # Test if expression equals zero
+                result = test_conjecture(claim, 0)
+            
+            print_conjecture_result(result)
+            
+        except Exception as e:
+            logger.error(f"Conjecture test failed: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _display_solution(self, result):
         """Display solution results."""
@@ -314,17 +843,23 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python -m src.cli solve "x^2 - 4 = 0"
-  python -m src.cli verify "sin^2(x) + cos^2(x) = 1"
-  python -m src.cli explain "derivative"
-  python -m src.cli  # Interactive mode
+  python -m aimath.cli solve "x^2 - 4 = 0"
+  python -m aimath.cli integrate "atan(sqrt(x**2+2))/((x**2+1)*sqrt(x**2+2)) from 0 to 1"
+  python -m aimath.cli contour "1/(x**2 + 1)"
+  python -m aimath.cli test "sin(x)**2 + cos(x)**2 = 1"
+  python -m aimath.cli test "(a+b)**2 = a**2 + b**2"
+  python -m aimath.cli pde "u_t = u_xx"
+  python -m aimath.cli ode "y' + 2*y = x"
+  python -m aimath.cli recognize "0.514041895890"
+  python -m aimath.cli  # Interactive mode
         """
     )
     
     parser.add_argument(
         'command',
         nargs='?',
-        choices=['solve', 'verify', 'explain'],
+        choices=['solve', 'verify', 'explain', 'ask', 'ode', 'pde', 'matrix', 'optimize', 
+                 'steps', 'integrate', 'contour', 'feynman', 'recognize', 'test'],
         help='Command to execute'
     )
     
@@ -367,6 +902,28 @@ Examples:
             cli._do_verify(args.input)
         elif args.command == 'explain':
             cli._do_explain(args.input)
+        elif args.command == 'ask':
+            cli._do_ask(args.input)
+        elif args.command == 'ode':
+            cli._do_ode(args.input)
+        elif args.command == 'pde':
+            cli._do_pde(args.input)
+        elif args.command == 'matrix':
+            cli._do_matrix(args.input)
+        elif args.command == 'optimize':
+            cli._do_optimize(args.input)
+        elif args.command == 'steps':
+            cli._do_steps(args.input)
+        elif args.command == 'integrate':
+            cli._do_integrate(args.input)
+        elif args.command == 'contour':
+            cli._do_contour(args.input)
+        elif args.command == 'feynman':
+            cli._do_feynman(args.input)
+        elif args.command == 'recognize':
+            cli._do_recognize(args.input)
+        elif args.command == 'test':
+            cli._do_test(args.input)
     else:
         # Interactive mode
         cli.run()

@@ -284,11 +284,21 @@ class CounterexampleSearcher:
         
         elif problem.problem_type == ProblemType.INTEGRATION:
             # For integrals, derivative of answer should equal integrand
-            integrand = problem.parsed_expression
-            if hasattr(integrand, 'args') and integrand.args:
-                integrand = integrand.args[0]
+            # BUT: For DEFINITE integrals, answer is a number - no counterexamples possible
+            from sympy import Integral
             
-            # Compute derivative of answer
+            expr = problem.parsed_expression
+            if isinstance(expr, Integral):
+                limits = expr.args[1] if len(expr.args) > 1 else None
+                # Check if definite (has bounds like (x, 0, oo))
+                if limits is not None and len(limits) == 3:
+                    # Definite integral - answer is a number, can't find counterexamples
+                    return []
+                integrand = expr.args[0]
+            else:
+                integrand = expr
+            
+            # For indefinite integrals: derivative of answer should equal integrand
             answer_deriv = diff(answer, var)
             
             try:
