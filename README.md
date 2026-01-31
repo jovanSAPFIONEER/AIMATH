@@ -9,6 +9,21 @@
 
 ---
 
+## 🆕 What's New: MathClaw Autonomous Discovery
+
+**MathClaw** is an autonomous mathematical discovery engine that continuously generates and proves theorems - forever! It uses LLMs to generate conjectures and AIMATH's verification layer to prove them.
+
+```python
+from mathclaw import MathClaw
+
+claw = MathClaw(openai_api_key="sk-...")
+claw.start()  # Discovers math autonomously forever!
+```
+
+See [MathClaw Documentation](mathclaw/README.md) for full details.
+
+---
+
 ## 🚀 Quick Install
 
 ```bash
@@ -176,16 +191,50 @@ aimath explain "quadratic formula" --level advanced
 
 ```
 AIMATH/
-├── aimath/                 # Main package (pip installable)
+├── aimath/                 # Core verification package
 │   ├── core/              # Math engine and types
 │   ├── proof_assistant/   # Formal proof system
 │   ├── solvers/           # Symbolic & numerical solvers
+│   │   ├── hybrid_integrator.py    # Database + Symbolic + Numeric
+│   │   ├── contour_integration.py  # Residue Theorem
+│   │   ├── pde_solver.py           # Heat, Wave, Transport PDEs
+│   │   ├── conjecture_tester.py    # Fuzz testing
+│   │   └── constant_recognizer.py  # Inverse symbolic calculator
 │   ├── verification/      # Anti-hallucination checks
-│   ├── explanation/       # Quality-enforced explanations
-│   └── cli.py            # Command-line interface
-├── tests/                 # Test suites
-├── examples/              # Usage examples
-└── config/               # Configuration files
+│   └── explanation/       # Quality-enforced explanations
+├── mathclaw/              # 🔮 Autonomous Discovery Engine (NEW!)
+│   ├── security/          # Input validation, sandboxing
+│   ├── protection/        # Code integrity, rollback
+│   ├── evolution/         # Strategy evolution (TEXT only)
+│   ├── discovery/         # Conjecture generation & verification
+│   ├── api/              # LLM providers (OpenAI, Anthropic, etc.)
+│   └── cli/              # MathClaw CLI
+├── main.py               # Unified CLI interface
+├── tests/                # Test suites
+└── examples/             # Usage examples
+```
+
+---
+
+## 🛠️ Unified CLI
+
+```bash
+# Core AIMATH commands
+python main.py wizard              # Interactive mode
+python main.py solve "x^2 - 4 = 0" # Solve equations
+python main.py integrate "x**2" --bounds 0 1
+python main.py contour "1/(z**2+1)"  # Residue theorem
+python main.py pde heat --plot       # Solve heat equation
+python main.py verify "(a+b)**2" "a**2+b**2"  # Fuzz test
+python main.py recognize 3.14159265  # Constant recognition
+python main.py riemann --t-max 100   # Riemann Zeta 2D
+python main.py riemann3d             # Riemann Zeta 3D explorer
+
+# MathClaw autonomous discovery
+python -m mathclaw start --provider openai
+python -m mathclaw discover --count 5
+python -m mathclaw theorems --limit 20
+python -m mathclaw export --format markdown
 ```
 
 ---
@@ -222,6 +271,7 @@ AIMATH has been tested against:
 | 🔬 **Researchers** | Verify mathematical claims in papers |
 | 💻 **Developers** | Integrate verified math into applications |
 | 🤖 **AI Systems** | Ground LLM outputs with rigorous verification |
+| 🔮 **Explorers** | Autonomous mathematical discovery with MathClaw |
 
 ---
 
@@ -231,10 +281,17 @@ AIMATH has been tested against:
 - SymPy (symbolic computation)
 - NumPy, SciPy (numerical computation)
 - Z3-solver (formal verification)
+- Click (CLI framework)
+
+For MathClaw autonomous discovery:
+- OpenAI API key, OR
+- Anthropic API key, OR
+- Google API key, OR
+- Ollama (local, no key needed)
 
 Install all dependencies:
 ```bash
-pip install aimath[all]
+pip install -e ".[all]"
 ```
 
 ---
